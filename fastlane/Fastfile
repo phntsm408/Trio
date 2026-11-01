@@ -167,35 +167,62 @@ platform :ios do
       key_content: "#{FASTLANE_KEY}"
     )
 
-    def configure_bundle_id(name, identifier, capabilities)
+    def configure_bundle_id(name, identifier, capabilities, app_group_id = nil)
       bundle_id = Spaceship::ConnectAPI::BundleId.find(identifier) || Spaceship::ConnectAPI::BundleId.create(
         name:       name,
         identifier: identifier,
         platform:   "IOS"
       )
-      existing = bundle_id.get_capabilities.map(&:capability_type)
-      capabilities.reject { |c| existing.include?(c) }.each do |cap|
-        bundle_id.create_capability(cap)
+      existing = bundle_id.get_capabilities
+      capabilities.each do |cap|
+        settings = (cap == "APP_GROUPS" && app_group_id) ? [{ appGroups: [app_group_id] }] : []
+        found = existing.find { |c| c.capability_type == cap }
+        if found
+          next if settings.empty?
+          begin
+            bundle_id.update_capability(cap, enabled: true, settings: settings)
+            puts "#{identifier}: attached app group #{app_group_id}"
+          rescue StandardError => e
+            puts "#{identifier}: could not attach app group: #{e.message}"
+          end
+        else
+          begin
+            bundle_id.create_capability(cap, settings: settings)
+            puts "#{identifier}: added capability #{cap}"
+          rescue StandardError => e
+            puts "#{identifier}: could not add capability #{cap}: #{e.message}"
+          end
+        end
+      end
+      bundle_id.get_capabilities.each do |c|
+        puts "  CHECK #{identifier} -> #{c.capability_type} settings=#{c.settings.inspect}"
       end
     end
 
+    APP_GROUP_ID = "group.org.nightscout.#{TEAMID}.trio.trio-app-group"
+    puts "Required App Group: #{APP_GROUP_ID}"
+
     configure_bundle_id("Trio", "#{BUNDLE_ID}", [
-      Spaceship::ConnectAPI::BundleIdCapability::Type::APP_GROUPS,
-      Spaceship::ConnectAPI::BundleIdCapability::Type::HEALTHKIT,
-      Spaceship::ConnectAPI::BundleIdCapability::Type::NFC_TAG_READING,
-      Spaceship::ConnectAPI::BundleIdCapability::Type::PUSH_NOTIFICATIONS
-    ])
+      #{T}::APP_GROUPS,
+      #{T}::HEALTHKIT,
+      #{T}::NFC_TAG_READING,
+      #{T}::PUSH_NOTIFICATIONS,
+      #{T}::USERNOTIFICATIONS_TIMESENSITIVE
+    ], APP_GROUP_ID)
 
     configure_bundle_id("Trio Watch Complication", "#{BUNDLE_ID}.watchkitapp.TrioWatchComplication", [
-      Spaceship::ConnectAPI::BundleIdCapability::Type::APP_GROUPS
-    ])
-    
-    configure_bundle_id("Trio Watch App", "#{BUNDLE_ID}.watchkitapp", [
-      Spaceship::ConnectAPI::BundleIdCapability::Type::APP_GROUPS,
-      Spaceship::ConnectAPI::BundleIdCapability::Type::HEALTHKIT
-    ])
+      #{T}::APP_GROUPS
+    ], APP_GROUP_ID)
 
-    configure_bundle_id("Trio LiveActivity", "#{BUNDLE_ID}.LiveActivity", [])
+    configure_bundle_id("Trio Watch App", "#{BUNDLE_ID}.watchkitapp", [
+      #{T}::APP_GROUPS,
+      #{T}::HEALTHKIT,
+      #{T}::USERNOTIFICATIONS_TIMESENSITIVE
+    ], APP_GROUP_ID)
+
+    configure_bundle_id("Trio LiveActivity", "#{BUNDLE_ID}.LiveActivity", [
+      #{T}::APP_GROUPS
+    ], APP_GROUP_ID)
     
   end
 
