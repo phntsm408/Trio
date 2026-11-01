@@ -201,26 +201,25 @@ platform :ios do
 
     APP_GROUP_ID = "group.org.nightscout.#{TEAMID}.trio.trio-app-group"
     puts "Required App Group: #{APP_GROUP_ID}"
+    begin
+      client = Spaceship::ConnectAPI.client.provisioning_request_client
+      ids = (client.get("v1/appGroups").body['data'] || []).map { |g| g['attributes']['identifier'] }
+      puts "App groups on team: #{ids.inspect}"
+      unless ids.include?(APP_GROUP_ID)
+        client.post("v1/appGroups", { data: { type: "appGroups", attributes: { description: "Trio App Group", identifier: APP_GROUP_ID } } })
+        puts "Created app group #{APP_GROUP_ID}"
+      end
+    rescue StandardError => e
+      puts "App group check failed: #{e.message}"
+    end
 
-    configure_bundle_id("Trio", "#{BUNDLE_ID}", [
-      #{T}::APP_GROUPS,
-      #{T}::HEALTHKIT,
-      #{T}::NFC_TAG_READING,
-      #{T}::PUSH_NOTIFICATIONS,
-      #{T}::USERNOTIFICATIONS_TIMESENSITIVE
-    ], APP_GROUP_ID)
+    configure_bundle_id("Trio", "#{BUNDLE_ID}", ["APP_GROUPS", "HEALTHKIT", "NFC_TAG_READING", "PUSH_NOTIFICATIONS", "USERNOTIFICATIONS_TIMESENSITIVE"], APP_GROUP_ID)
 
-    configure_bundle_id("Trio Watch Complication", "#{BUNDLE_ID}.watchkitapp.TrioWatchComplication", [
-      #{T}::APP_GROUPS
-    ], APP_GROUP_ID)
+    configure_bundle_id("Trio Watch Complication", "#{BUNDLE_ID}.watchkitapp.TrioWatchComplication", ["APP_GROUPS"], APP_GROUP_ID)
 
-    configure_bundle_id("Trio Watch App", "#{BUNDLE_ID}.watchkitapp", [
-      #{T}::APP_GROUPS,
-      #{T}::HEALTHKIT,
-      #{T}::USERNOTIFICATIONS_TIMESENSITIVE
-    ], APP_GROUP_ID)
+    configure_bundle_id("Trio Watch App", "#{BUNDLE_ID}.watchkitapp", ["APP_GROUPS", "HEALTHKIT", "USERNOTIFICATIONS_TIMESENSITIVE"], APP_GROUP_ID)
 
-    configure_bundle_id("Trio LiveActivity", "#{BUNDLE_ID}.LiveActivity", [
+    configure_bundle_id("Trio LiveActivity", "#{BUNDLE_ID}.LiveActivity", ["APP_GROUPS"], APP_GROUP_ID)
       #{T}::APP_GROUPS
     ], APP_GROUP_ID)
     
