@@ -17,7 +17,7 @@ jobs:
         run: |
           cat > query_caps.rb << 'RUBY'
           require "spaceship"
-          Spaceship::ConnectAPI.login(ENV["FASTLANE_KEY_ID"], ENV["FASTLANE_KEY"], issuer_id: ENV["FASTLANE_ISSUER_ID"])
+          Spaceship::ConnectAPI.login(ENV["FASTLANE_KEY_ID"], ENV["FASTLANE_KEY"])
           ["", ".watchkitapp", ".watchkitapp.TrioWatchComplication", ".LiveActivity"].each do |suffix|
             identifier = "org.nightscout." + ENV["TEAMID"] + ".trio" + suffix
             puts "--- " + identifier + " ---"
