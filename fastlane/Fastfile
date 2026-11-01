@@ -220,8 +220,6 @@ platform :ios do
     configure_bundle_id("Trio Watch App", "#{BUNDLE_ID}.watchkitapp", ["APP_GROUPS", "HEALTHKIT", "USERNOTIFICATIONS_TIMESENSITIVE"], APP_GROUP_ID)
 
     configure_bundle_id("Trio LiveActivity", "#{BUNDLE_ID}.LiveActivity", ["APP_GROUPS"], APP_GROUP_ID)
-      #{T}::APP_GROUPS
-    ], APP_GROUP_ID)
     
   end
 
