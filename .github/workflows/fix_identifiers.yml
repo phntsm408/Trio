@@ -1,0 +1,35 @@
+name: Fix - Identifiers, Capabilities and Profiles
+on:
+  workflow_dispatch:
+
+env:
+  TEAMID: ${{ secrets.TEAMID }}
+  GH_PAT: ${{ secrets.GH_PAT }}
+  GH_TOKEN: ${{ secrets.GH_PAT }}
+  MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+  FASTLANE_KEY_ID: ${{ secrets.FASTLANE_KEY_ID }}
+  FASTLANE_ISSUER_ID: ${{ secrets.FASTLANE_ISSUER_ID }}
+  FASTLANE_KEY: ${{ secrets.FASTLANE_KEY }}
+
+jobs:
+  fix:
+    name: Fix identifiers and rebuild profiles
+    runs-on: macos-26
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Install dependencies
+        run: bundle install
+
+      - name: Sync clock
+        run: sudo sntp -sS time.windows.com
+
+      - name: Set identifier capabilities
+        run: bundle exec fastlane identifiers
+
+      - name: Nuke old certificates and profiles
+        run: bundle exec fastlane nuke_certs
+
+      - name: Recreate certificates and profiles
+        run: bundle exec fastlane certs
