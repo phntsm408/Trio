@@ -9,29 +9,28 @@ jobs:
   check:
     runs-on: macos-26
     steps:
-      - name: Checkout
-        uses: actions/checkout@v5
-      - name: Install deps
-        run: bundle install
       - name: Query capabilities
         run: |
-          cat > query_caps.rb << 'RUBY'
-          require "spaceship"
-          Spaceship::ConnectAPI.login(ENV["FASTLANE_KEY_ID"], ENV["FASTLANE_KEY"])
-          ["", ".watchkitapp", ".watchkitapp.TrioWatchComplication", ".LiveActivity"].each do |suffix|
-            identifier = "org.nightscout." + ENV["TEAMID"] + ".trio" + suffix
-            puts "--- " + identifier + " ---"
-            begin
-              bid = Spaceship::ConnectAPI::BundleId.find(identifier)
-              if bid
-                caps = bid.get_capabilities.map { |c| c.capability_type }
-                puts "  capabilities: " + caps.inspect
-              else
-                puts "  IDENTIFIER NOT FOUND"
+          ruby -e '
+            require "openssl"
+            require "json"
+            require "base64"
+            key = ENV["FASTLANE_KEY"].strip
+            now = Time.now.to_i
+            h = Base64.urlsafe_encode64(JSON.generate({alg: "HS256", kid: ENV["FASTLANE_KEY_ID"]}), padding: false)
+            p = Base64.urlsafe_encode64(JSON.generate({iss: ENV["FASTLANE_ISSUER_ID"], iat: now, exp: now + 600}), padding: false)
+            sig = Base64.urlsafe_encode64(OpenSSL::HMAC.digest("SHA256", key, h + "." + p), padding: false)
+            jwt = h + "." + p + "." + sig
+            resp = `curl -s -H "Authorization: Bearer #{jwt}" "https://api.appstoreconnect.apple.com/v1/bundleIds?limit=20"`
+            data = JSON.parse(resp)
+            if data["data"].nil?
+              puts "API error: #{resp[0,400]}"
+            else
+              data["data"].each do |b|
+                a = b["attributes"]
+                puts "--- #{a["identifier"]} ---"
+                puts "  capabilities: #{a["capabilities"].inspect}"
+                puts "  app groups: #{a["groups"].inspect}"
               end
-            rescue => e
-              puts "  error: " + e.message
             end
-          end
-          RUBY
-          bundle exec ruby query_caps.rb
+          '
